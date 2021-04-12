@@ -58,10 +58,71 @@ namespace TrezorBalanceMonitoring
                                 xmlDoc.SelectSingleNode("//Coins").AppendChild(nodeRegion);
                                 xmlDoc.Save(AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
                             }
-
-                            Console.WriteLine(coinName);
                         }
-                        //Console.WriteLine(bitcoinConfigFile.FullName);
+                    }
+
+                    //TODO: trezor - ethereum types
+
+                    //trezor - misc types
+                    var miscDirectoryInfo = new DirectoryInfo(Path.Combine(trezorFirmwareWorkingDirectory, "common", "defs", "misc"));
+                    foreach (var miscConfigFile in miscDirectoryInfo.GetFiles("*.json"))
+                    {
+                        using (var reader = miscConfigFile.OpenText())
+                        {
+                            var configContents = reader.ReadToEnd();
+                            dynamic configData = JsonConvert.DeserializeObject(configContents);
+                            foreach (var configItem in configData)
+                            {
+                                var coinName = configItem.name.Value;
+                                var coinId = configItem.shortcut.Value;
+
+                                var alreadyMonitoredConfig = monitoredCoinSection.MonitoredCoins.OfType<MonitoredCoinElement>().Where(x => x.Key == coinId).FirstOrDefault();
+                                if (alreadyMonitoredConfig == null)
+                                {
+                                    var xmlDoc = new XmlDocument();
+                                    xmlDoc.Load(AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
+                                    var nodeRegion = xmlDoc.CreateElement("add");
+                                    nodeRegion.SetAttribute("key", coinId);
+                                    nodeRegion.SetAttribute("coinId", coinId);
+                                    nodeRegion.SetAttribute("coinName", coinName);
+                                    nodeRegion.SetAttribute("address", String.Empty);
+                                    xmlDoc.SelectSingleNode("//Coins").AppendChild(nodeRegion);
+                                    xmlDoc.Save(AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
+                                }
+                            }
+                            
+                        }
+                    }
+
+                    //trezor - nem types
+                    var nemDirectoryInfo = new DirectoryInfo(Path.Combine(trezorFirmwareWorkingDirectory, "common", "defs", "nem"));
+                    foreach (var nemConfigFile in nemDirectoryInfo.GetFiles("*.json"))
+                    {
+                        using (var reader = nemConfigFile.OpenText())
+                        {
+                            var configContents = reader.ReadToEnd();
+                            dynamic configData = JsonConvert.DeserializeObject(configContents);
+                            foreach (var configItem in configData)
+                            {
+                                var coinName = configItem.name.Value;
+                                var coinId = configItem.ticker.Value;
+
+                                var alreadyMonitoredConfig = monitoredCoinSection.MonitoredCoins.OfType<MonitoredCoinElement>().Where(x => x.Key == coinId).FirstOrDefault();
+                                if (alreadyMonitoredConfig == null)
+                                {
+                                    var xmlDoc = new XmlDocument();
+                                    xmlDoc.Load(AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
+                                    var nodeRegion = xmlDoc.CreateElement("add");
+                                    nodeRegion.SetAttribute("key", coinId);
+                                    nodeRegion.SetAttribute("coinId", coinId);
+                                    nodeRegion.SetAttribute("coinName", coinName);
+                                    nodeRegion.SetAttribute("address", String.Empty);
+                                    xmlDoc.SelectSingleNode("//Coins").AppendChild(nodeRegion);
+                                    xmlDoc.Save(AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
+                                }
+                            }
+
+                        }
                     }
 
 
