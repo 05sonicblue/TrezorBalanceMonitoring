@@ -10,6 +10,12 @@ namespace TrezorBalanceMonitoring
     {
         static void Main(string[] args)
         {
+            GenerateConfig();
+        }
+
+        private static void GenerateConfig()
+        {
+
         }
     }
 }
