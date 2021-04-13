@@ -57,6 +57,11 @@ namespace TrezorBalanceMonitoring
                         dynamic configData = JsonConvert.DeserializeObject(configContents);
                         var coinName = configData.coin_name.Value;
                         var coinId = configData.coin_shortcut.Value;
+                        var key = coinId;
+                        if (coinName.ToUpper().Contains("TESTNET"))
+                        {
+                            key += ".TESTNET";
+                        }
 
                         var alreadyMonitoredConfig = monitoredCoinSection.MonitoredCoins.OfType<MonitoredCoinElement>().Where(x => x.Key == coinId).FirstOrDefault();
                         if (alreadyMonitoredConfig == null)
@@ -64,7 +69,7 @@ namespace TrezorBalanceMonitoring
                             var xmlDoc = new XmlDocument();
                             xmlDoc.Load(AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
                             var nodeRegion = xmlDoc.CreateElement("add");
-                            nodeRegion.SetAttribute("key", coinId);
+                            nodeRegion.SetAttribute("key", key);
                             nodeRegion.SetAttribute("coinId", coinId);
                             nodeRegion.SetAttribute("coinName", coinName);
                             nodeRegion.SetAttribute("address", String.Empty);
@@ -86,6 +91,11 @@ namespace TrezorBalanceMonitoring
                         {
                             var coinName = configItem.name.Value;
                             var coinId = configItem.shortcut.Value;
+                            var key = coinId;
+                            if (coinName.ToUpper().Contains("TESTNET"))
+                            {
+                                key += ".TESTNET";
+                            }
 
                             var alreadyMonitoredConfig = monitoredCoinSection.MonitoredCoins.OfType<MonitoredCoinElement>().Where(x => x.Key == coinId).FirstOrDefault();
                             if (alreadyMonitoredConfig == null)
@@ -93,7 +103,7 @@ namespace TrezorBalanceMonitoring
                                 var xmlDoc = new XmlDocument();
                                 xmlDoc.Load(AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
                                 var nodeRegion = xmlDoc.CreateElement("add");
-                                nodeRegion.SetAttribute("key", coinId);
+                                nodeRegion.SetAttribute("key", key);
                                 nodeRegion.SetAttribute("coinId", coinId);
                                 nodeRegion.SetAttribute("coinName", coinName);
                                 nodeRegion.SetAttribute("address", String.Empty);
@@ -117,6 +127,11 @@ namespace TrezorBalanceMonitoring
                         {
                             var coinName = configItem.name.Value;
                             var coinId = configItem.ticker.Value;
+                            var key = coinId;
+                            if (coinName.ToUpper().Contains("TESTNET"))
+                            {
+                                key += ".TESTNET";
+                            }
 
                             var alreadyMonitoredConfig = monitoredCoinSection.MonitoredCoins.OfType<MonitoredCoinElement>().Where(x => x.Key == coinId).FirstOrDefault();
                             if (alreadyMonitoredConfig == null)
@@ -124,7 +139,7 @@ namespace TrezorBalanceMonitoring
                                 var xmlDoc = new XmlDocument();
                                 xmlDoc.Load(AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
                                 var nodeRegion = xmlDoc.CreateElement("add");
-                                nodeRegion.SetAttribute("key", coinId);
+                                nodeRegion.SetAttribute("key", key);
                                 nodeRegion.SetAttribute("coinId", coinId);
                                 nodeRegion.SetAttribute("coinName", coinName);
                                 nodeRegion.SetAttribute("address", String.Empty);
@@ -138,6 +153,7 @@ namespace TrezorBalanceMonitoring
 
                 //trezor - eth chains
                 var ethChainsDirectoryInfo = new DirectoryInfo(Path.Combine(ethChainsWorkingDirectory, "_data", "chains"));
+                var ethTokensDirectoryInfo = new DirectoryInfo(Path.Combine(ethTokensWorkingDirectory, "tokens"));
                 foreach (var ethChainConfigFile in ethChainsDirectoryInfo.GetFiles("*.json"))
                 {
                     using (var reader = ethChainConfigFile.OpenText())
@@ -146,6 +162,18 @@ namespace TrezorBalanceMonitoring
                         dynamic configData = JsonConvert.DeserializeObject(configContents);
                         var coinName = configData.name.Value;
                         var coinId = configData.nativeCurrency.symbol.Value;
+                        var shortName = configData?.shortName?.Value;
+                        var key = coinId;
+                        if (coinName.ToUpper().Contains("TESTNET"))
+                        {
+                            key += ".TESTNET";
+                        }
+
+                        if (!String.IsNullOrEmpty(shortName))
+                        {
+                            key += "." + shortName;
+                        }
+                        
 
                         var alreadyMonitoredConfig = monitoredCoinSection.MonitoredCoins.OfType<MonitoredCoinElement>().Where(x => x.Key == coinId && x.CoinName == coinName).FirstOrDefault();
                         if (alreadyMonitoredConfig == null)
@@ -153,15 +181,54 @@ namespace TrezorBalanceMonitoring
                             var xmlDoc = new XmlDocument();
                             xmlDoc.Load(AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
                             var nodeRegion = xmlDoc.CreateElement("add");
-                            nodeRegion.SetAttribute("key", coinId);
+                            nodeRegion.SetAttribute("key", key);
                             nodeRegion.SetAttribute("coinId", coinId);
                             nodeRegion.SetAttribute("coinName", coinName);
                             nodeRegion.SetAttribute("address", String.Empty);
                             xmlDoc.SelectSingleNode("//Coins").AppendChild(nodeRegion);
                             xmlDoc.Save(AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
                         }
+
+                        foreach (var tokenChain in ethTokensDirectoryInfo.GetDirectories())
+                        {
+                            if (tokenChain.Name.Equals(coinId, StringComparison.OrdinalIgnoreCase))
+                            {
+                                foreach (var tokenConfigFile in tokenChain.GetFiles("*.json"))
+                                {
+                                    using (var tokenReader = tokenConfigFile.OpenText())
+                                    {
+                                        var tokenContents = tokenReader.ReadToEnd();
+                                        dynamic tokenData = JsonConvert.DeserializeObject(tokenContents);
+                                        var tokenName = tokenData.name.Value;
+                                        var tokenId = tokenData.symbol.Value;
+                                        var tokenType = tokenData?.type?.Value;
+                                        var tokenContract = tokenData.address.Value;
+
+                                        var alreadyMonitoredTokenConfig = monitoredCoinSection.MonitoredCoins.OfType<MonitoredCoinElement>().Where(x => x.Key == (coinId + "." + tokenId + "." + tokenContract)).FirstOrDefault();
+                                        if (alreadyMonitoredTokenConfig==null)
+                                        {
+                                            var xmlDoc = new XmlDocument();
+                                            xmlDoc.Load(AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
+                                            var nodeRegion = xmlDoc.CreateElement("add");
+                                            nodeRegion.SetAttribute("key", coinId + "." + tokenId + "." + tokenContract);
+                                            nodeRegion.SetAttribute("coinId", tokenId);
+                                            nodeRegion.SetAttribute("coinName", tokenName);
+                                            nodeRegion.SetAttribute("address", String.Empty);
+                                            nodeRegion.SetAttribute("type", tokenType);
+                                            nodeRegion.SetAttribute("contractaddress", tokenContract);
+                                            nodeRegion.SetAttribute("parentcoin", coinId);
+                                            xmlDoc.SelectSingleNode("//Coins").AppendChild(nodeRegion);
+                                            xmlDoc.Save(AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
+
+                //trezor - eth tokens
+                
 
 
                 ConfigurationManager.RefreshSection("Coins");

@@ -126,16 +126,42 @@ namespace TrezorBalanceMonitoring
             }
         }
 
-        [ConfigurationProperty("erc20", IsRequired = false, DefaultValue = false)]
-        public bool Erc20
+        [ConfigurationProperty("type", IsRequired = false, DefaultValue = "")]
+        public string Erc20
         {
             get
             {
-                return (bool)base["erc20"];
+                return (string)base["type"];
             }
             set
             {
-                base["erc20"] = value;
+                base["type"] = value;
+            }
+        }
+
+        [ConfigurationProperty("contractaddress", IsRequired = false, DefaultValue = "")]
+        public string ContractAddress
+        {
+            get
+            {
+                return (string)base["contractaddress"];
+            }
+            set
+            {
+                base["contractaddress"] = value;
+            }
+        }
+
+        [ConfigurationProperty("parentcoin", IsRequired = false, DefaultValue = "")]
+        public string ParentCoin
+        {
+            get
+            {
+                return (string)base["parentcoin"];
+            }
+            set
+            {
+                base["parentcoin"] = value;
             }
         }
     }
