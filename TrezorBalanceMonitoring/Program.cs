@@ -299,34 +299,37 @@ namespace TrezorBalanceMonitoring
 
         private static void GetFiatData()
         {
-            var configuredCoinCodes = String.Join(",", configuredCoinList.Keys);
-            var client = new RestClient("https://pro-api.coinmarketcap.com/v1");
-            var request = new RestRequest(String.Format("cryptocurrency/quotes/latest?symbol={0}", configuredCoinCodes));
-            request.AddHeader("X-CMC_PRO_API_KEY", coinMarketCapApiKey);
-            var result = client.Execute(request);
-            dynamic apiResponse = JsonConvert.DeserializeObject(result.Content);
-            foreach (var apiItem in apiResponse.data)
+            if (!String.IsNullOrEmpty(coinMarketCapApiKey))
             {
-                foreach (var nestedItem in apiItem)
+                var configuredCoinCodes = String.Join(",", configuredCoinList.Keys);
+                var client = new RestClient("https://pro-api.coinmarketcap.com/v1");
+                var request = new RestRequest(String.Format("cryptocurrency/quotes/latest?symbol={0}", configuredCoinCodes));
+                request.AddHeader("X-CMC_PRO_API_KEY", coinMarketCapApiKey);
+                var result = client.Execute(request);
+                dynamic apiResponse = JsonConvert.DeserializeObject(result.Content);
+                foreach (var apiItem in apiResponse.data)
                 {
-                    foreach (var quoteItem in nestedItem.quote)
+                    foreach (var nestedItem in apiItem)
                     {
-                        if (quoteItem.Name == "USD")
+                        foreach (var quoteItem in nestedItem.quote)
                         {
-                            foreach (var superNested in quoteItem)
+                            if (quoteItem.Name == "USD")
                             {
-                                var symbol = nestedItem.symbol.Value;
-                                var usdPrice = Convert.ToDouble(superNested.price.Value);
-                                if (configuredCoinList.ContainsKey(symbol))
+                                foreach (var superNested in quoteItem)
                                 {
-                                    configuredCoinList[symbol] = usdPrice;
+                                    var symbol = nestedItem.symbol.Value;
+                                    var usdPrice = Convert.ToDouble(superNested.price.Value);
+                                    if (configuredCoinList.ContainsKey(symbol))
+                                    {
+                                        configuredCoinList[symbol] = usdPrice;
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                exchangeRateDateTime = DateTime.Now;
             }
-            exchangeRateDateTime = DateTime.Now;
         }
 
         private static void SetupConfiguredCoinList()
